@@ -1,5 +1,5 @@
 FROM node:14
-WORKDIR /app
+WORKDIR .
 COPY package*.json ./
 RUN npm install express axios
 COPY . .
