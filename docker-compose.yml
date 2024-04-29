@@ -4,7 +4,12 @@ services:
     node:
         build: ./app
         ports:
-        - "8081:8080"
+        - "3000:3000"
+        links:
+            - redis
+
+    redis:
+        image: redis:7
 
     nginx:
         image: nginx:1.25.4

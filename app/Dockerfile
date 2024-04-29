@@ -3,5 +3,5 @@ WORKDIR .
 COPY package*.json ./
 RUN npm install express axios
 COPY . .
-EXPOSE 8080
+EXPOSE 3000
 CMD ["node", "index.js"]
