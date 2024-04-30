@@ -2,21 +2,23 @@ const express = require('express');
 const redis = require('redis');
 const axios = require('axios');
 const hotshot = require('hot-shots');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
+const PORT = 3000;
+
+// RATE LIMITING setup
+const windowSizeInSeconds = 1;
+const allowedRequestsPerWindow = 5;
+const limiter = rateLimit({windowMs: windowSizeInSeconds * 1000, limit: allowedRequestsPerWindow});
+app.use(limiter);
 
 // REDIS setup
 const redisClient = redis.createClient({url: 'redis://redis:6379'});
-
-(async () => {
-  await redisClient.connect();
-})() 
+(async () => await redisClient.connect())();
 
 // HOTSHOT setup
-const statsdClient = new hotshot({
-  host: 'graphite', // Nombre del servicio de Graphite, definido en el Docker Compose
-  port: 8125, // Puerto predeterminado de Graphite para recibir métricas
-});
+const statsdClient = new hotshot({host: 'graphite', port: 8125});
 
 app.use((req, res, next) => {
   const start = process.hrtime();
@@ -24,15 +26,14 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     const duration = process.hrtime(start);
     const durationInMilliseconds = duration[0] * 1000 + duration[1] / 1e6;
-    console.log('duration: ' + durationInMilliseconds)
+    console.log('endpoint.response_time: ' + durationInMilliseconds)
     statsdClient.timing('endpoint.response_time', durationInMilliseconds);
   });
 
   next();
 });
 
-const PORT = 3000;
-
+// ENDPOINTS
 app.get('/ping', async (req, res) => {
   res.send('pong');
 });
@@ -45,8 +46,12 @@ app.get('/spaceflight_news', async (req, res) => {
     if(titlesString !== null) {
         titles = JSON.parse(titlesString);
     } else {
-        const apiUrl = 'https://api.spaceflightnewsapi.net/v4/articles/?limit=5';
-        const response = await axios.get(apiUrl);
+        const start = process.hrtime();
+        const response = await axios.get('https://api.spaceflightnewsapi.net/v4/articles/?limit=5');
+        const duration = process.hrtime(start);
+        const durationInMilliseconds = duration[0] * 1000 + duration[1] / 1e6;
+        statsdClient.timing('remote_api.response_time', durationInMilliseconds);
+        console.log('remote_api.response_time: ' + durationInMilliseconds);
         titles = response.data.results.map(article => article.title);
         await redisClient.set('space_news', JSON.stringify(titles), {EX: 3});
     }

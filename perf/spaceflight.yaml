@@ -12,12 +12,15 @@ config:
 
   phases:
     - name: Ramp
-      duration: 5
+      duration: 20
       arrivalRate: 1
-      rampTo: 5
+      rampTo: 20
     - name: Plain
-      duration: 5
-      arrivalRate: 5
+      duration: 10
+      arrivalRate: 2
+    - name: Plain2
+      duration: 10
+      arrivalRate: 10
     
 
 scenarios:
