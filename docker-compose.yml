@@ -4,7 +4,7 @@ services:
     node:
         build: ./app
         ports: 
-            - :3000
+            - "3000-3002:3000"
         links:
             - redis
 

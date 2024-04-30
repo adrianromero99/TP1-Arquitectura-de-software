@@ -14,6 +14,8 @@
     "artillery": "2.0.0-14",
     "artillery-plugin-statsd": "^2.2.1",
     "axios": "^1.6.8",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "n": "^9.2.3",
+    "stable": "^0.1.8"
   }
 }
