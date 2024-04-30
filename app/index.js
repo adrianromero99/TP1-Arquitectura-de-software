@@ -1,6 +1,13 @@
 const express = require('express');
+const redis = require('redis');
 const axios = require('axios');
 const app = express();
+
+const redisClient = redis.createClient({url: 'redis://redis:6379'});
+
+(async () => {
+    await redisClient.connect();
+})() 
 
 const PORT = 3000;
 
@@ -10,19 +17,19 @@ app.get('/ping', async (req, res) => {
 
 app.get('/spaceflight_news', async (req, res) => {
 
-    const apiUrl = 'https://api.spaceflightnewsapi.net/v4/articles/?limit=5';
+    let titles = [];
+    const titlesString = await redisClient.get('space_news');
 
-    axios.get(apiUrl)
-    .then(response => {
-        const titles = response.data.results.map(article => article.title);
-        console.log(titles)
-        res.send(titles);
-    })
-    .catch(error => {
-        console.error('Error al obtener los datos:', error);
-    });
-
+    if(titlesString !== null) {
+        titles = JSON.parse(titlesString);
+    } else {
+        const apiUrl = 'https://api.spaceflightnewsapi.net/v4/articles/?limit=5';
+        const response = await axios.get(apiUrl);
+        titles = response.data.results.map(article => article.title);
+        await redisClient.set('space_news', JSON.stringify(titles), {EX: 3});
+    }
   
+    res.send(titles);
 });
 
 app.get('/dictionary', (req, res) => {
