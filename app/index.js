@@ -1,13 +1,35 @@
 const express = require('express');
 const redis = require('redis');
 const axios = require('axios');
+const hotshot = require('hot-shots');
+
 const app = express();
 
+// REDIS setup
 const redisClient = redis.createClient({url: 'redis://redis:6379'});
 
 (async () => {
-    await redisClient.connect();
+  await redisClient.connect();
 })() 
+
+// HOTSHOT setup
+const statsdClient = new hotshot({
+  host: 'graphite', // Nombre del servicio de Graphite, definido en el Docker Compose
+  port: 8125, // Puerto predeterminado de Graphite para recibir métricas
+});
+
+app.use((req, res, next) => {
+  const start = process.hrtime();
+
+  res.on('finish', () => {
+    const duration = process.hrtime(start);
+    const durationInMilliseconds = duration[0] * 1000 + duration[1] / 1e6;
+    console.log('duration: ' + durationInMilliseconds)
+    statsdClient.timing('endpoint.response_time', durationInMilliseconds);
+  });
+
+  next();
+});
 
 const PORT = 3000;
 
