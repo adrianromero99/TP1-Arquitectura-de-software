@@ -9,7 +9,7 @@ const PORT = 3000;
 
 // RATE LIMITING setup
 const windowSizeInSeconds = 1;
-const allowedRequestsPerWindow = 5;
+const allowedRequestsPerWindow = 1000;
 const limiter = rateLimit({windowMs: windowSizeInSeconds * 1000, limit: allowedRequestsPerWindow});
 app.use(limiter);
 
