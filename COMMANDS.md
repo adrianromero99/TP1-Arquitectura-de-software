@@ -1,12 +1,13 @@
-sudo docker ps -> lista pods
-sudo docker build my-node . -> build
-sudo docker stop [CONTAINER ID] //stops
-sudo run -p 8080:8080 my-node 
+## Levantar 1 instancia del servidor
+docker-compose up -d --build --scale
 
-## Para correr tres instancias de node:
-1. Modificar el contenido de nginx_reverse_proxy.conf con el contenido de nginx_reverse_proxy_multiple.conf 
-2. Borrar la imagen de docker creada de nginx
-3. Ejecutar docker compose up -d --scale node=3 
+## Levantar 3 instancias del servidor
+docker-compose up -d --build --scale node=3 
+OBS: se debe utilizar como archivo de configuración de nginx el archivo nginx_reverse_proxy_multiple.conf 
 
-# Correr artillery para el endpoint spaceflight
-sh run-scenario.sh spaceflight api
+## Correr las pruebas de artillery para los diferentes escenarios
+- sh run-scenario.sh ping api
+- sh run-scenario.sh spaceflight api
+- sh run-scenario.sh dictionary api
+- sh run-scenario.sh dictionary-ramp api
+- sh run-scenario.sh quote api

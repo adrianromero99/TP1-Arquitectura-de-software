@@ -9,7 +9,7 @@ const PORT = 3000;
 
 // RATE LIMITING setup
 const windowSizeInSeconds = 1;
-const allowedRequestsPerWindow = 5;
+const allowedRequestsPerWindow = 1000;
 const limiter = rateLimit({windowMs: windowSizeInSeconds * 1000, limit: allowedRequestsPerWindow});
 app.use(limiter);
 
@@ -25,13 +25,16 @@ app.use((req, res, next) => {
 
   res.on('finish', () => {
     const duration = process.hrtime(start);
-    const durationInMilliseconds = duration[0] * 1000 + duration[1] / 1e6;
-    console.log('endpoint.response_time: ' + durationInMilliseconds)
-    statsdClient.timing('endpoint.response_time', durationInMilliseconds);
+    sendDuration(duration, 'endpoint.response_time');
   });
 
   next();
 });
+
+const sendDuration = (duration, metricName) => {
+    const durationInMilliseconds = duration[0] * 1000 + duration[1] / 1e6;
+    statsdClient.timing(metricName, durationInMilliseconds);
+}
 
 // ENDPOINTS
 app.get('/ping', async (req, res) => {
@@ -45,22 +48,28 @@ app.get('/spaceflight_news', async (req, res) => {
 
     if(titlesString !== null) {
         titles = JSON.parse(titlesString);
+        res.send(titles);
     } else {
         const start = process.hrtime();
-        const response = await axios.get('https://api.spaceflightnewsapi.net/v4/articles/?limit=5');
-        const duration = process.hrtime(start);
-        const durationInMilliseconds = duration[0] * 1000 + duration[1] / 1e6;
-        statsdClient.timing('remote_api.response_time', durationInMilliseconds);
-        console.log('remote_api.response_time: ' + durationInMilliseconds);
-        titles = response.data.results.map(article => article.title);
-        await redisClient.set('space_news', JSON.stringify(titles), {EX: 3});
+
+        axios.get('https://api.spaceflightnewsapi.net/v4/articles/?limit=5')
+        .then(async(response) => {
+          const duration = process.hrtime(start);
+          sendDuration(duration, 'remote_api.response_time');
+          titles = response.data.results.map(article => article.title);
+          console.log(titles)
+          await redisClient.set('space_news', JSON.stringify(titles), {EX: 5});
+          res.send(titles);
+        })
+        .catch(error => {
+          console.error('Error al obtener los datos:', error);
+      });
     }
   
-    res.send(titles);
 });
 
 app.get('/dictionary', (req, res) => {
-    // Obtener el valor del parámetro 'word' de la consulta
+
     const word = req.query.word;
 
     if (!word) {
@@ -69,25 +78,30 @@ app.get('/dictionary', (req, res) => {
 
     const apiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
 
+    const start = process.hrtime();
     axios.get(apiUrl)
     .then(response => {
-        console.log(response.data);
-        const phonetics = response.data.map(article => {
-            // Obtener los significados y fonéticas de cada artículo
-            const meanings = article.meanings;
-            const phonetics = article.phonetics;
-          
-            // Concatenar los significados y fonéticas
-            const meaningsAndPhonetics = meanings.map(meaning => {
-              return {
-                meanings: meaning,
-                phonetics: phonetics
-              };
-            });
-          
-            return meaningsAndPhonetics;
+        const duration = process.hrtime(start);
+        sendDuration(duration, 'remote_api.response_time');
+        
+        const data = response.data;
+
+        let phonetics = [];
+        let meanings = [];
+
+        if (Array.isArray(data) && data.length > 0) {
+          data.forEach(entry => {
+            phonetics.push(...entry.phonetics.map(entry => entry));
+            meanings.push(...entry.meanings.map(entry => entry));
           });
-        res.send(phonetics);
+        }
+
+      const wordInfo = {
+        phonetics: phonetics,
+        meanings: meanings
+      };
+        
+      res.send(wordInfo);
     })
     .catch(error => {
         console.error('Error al obtener los datos:', error);
@@ -98,17 +112,18 @@ app.get('/dictionary', (req, res) => {
 
     const apiUrl = 'https://api.quotable.io/random';
 
+    const start = process.hrtime();
     axios.get(apiUrl)
     .then(response => {
+        const duration = process.hrtime(start);
+        sendDuration(duration, 'remote_api.response_time');
         const phrase = response.data.content;
-        console.log(phrase)
         res.send(phrase);
     })
     .catch(error => {
         console.error('Error al obtener los datos:', error);
     });
 
-  
 });
 
   
