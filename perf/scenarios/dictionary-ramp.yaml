@@ -1,0 +1,55 @@
+config:
+  environments:
+    api:
+      target: 'http://localhost:5555'
+      plugins:
+        statsd:
+          host: localhost
+          port: 8125
+          prefix: "artillery-api"
+  payload:
+    path: "words.csv"
+    fields:
+      - "word"
+    order: sequence
+    skipHeader: false
+
+  pool: 50 # All HTTP requests from all virtual users will be sent over the same connections
+
+  phases:
+  - name: One
+    duration: 20
+    arrivalRate: 1
+  - name: Two
+    duration: 20
+    arrivalRate: 2
+  - name: Three    b      
+    duration: 20
+    arrivalRate: 3
+  - name: Four
+    duration: 20
+    arrivalRate: 4
+  - name: Five
+    duration: 20
+    arrivalRate: 5
+  - name: Six
+    duration: 20
+    arrivalRate: 6
+  - name: Seven
+    duration: 20
+    arrivalRate: 7
+  - name: Eight
+    duration: 20
+    arrivalRate: 8
+  - name: Nine
+    duration: 20
+    arrivalRate: 9
+  - name: Ten
+    duration: 20
+    arrivalRate: 10
+
+scenarios:
+  - name: Dictionary (/dictionary)
+    flow:
+      - get:
+          url: '/dictionary?word={{ word }}'
