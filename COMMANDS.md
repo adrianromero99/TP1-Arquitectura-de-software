@@ -1,5 +1,5 @@
 ## Levantar 1 instancia del servidor
-docker-compose up -d --build --scale
+docker-compose up -d --build
 
 ## Levantar 3 instancias del servidor
 docker-compose up -d --build --scale node=3 
