@@ -17,18 +17,6 @@ config:
   pool: 50 # All HTTP requests from all virtual users will be sent over the same connections
 
   phases:
-  - name: One
-    duration: 20
-    arrivalRate: 1
-  - name: Two
-    duration: 20
-    arrivalRate: 2
-  - name: Three
-    duration: 20
-    arrivalRate: 3
-  - name: Four
-    duration: 20
-    arrivalRate: 4
   - name: Five
     duration: 20
     arrivalRate: 5
@@ -47,6 +35,18 @@ config:
   - name: Ten
     duration: 20
     arrivalRate: 10
+  - name: Eleven
+    duration: 20
+    arrivalRate: 11
+  - name: Twelve
+    duration: 20
+    arrivalRate: 12
+  - name: Thirteen
+    duration: 20
+    arrivalRate: 13
+  - name: Fourteen
+    duration: 20
+    arrivalRate: 14
 
 scenarios:
   - name: Quote (/quote)
