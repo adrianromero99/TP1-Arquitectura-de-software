@@ -118,7 +118,8 @@ app.get('/dictionary', (req, res) => {
         const duration = process.hrtime(start);
         sendDuration(duration, 'remote_api.response_time');
         const phrase = response.data.content;
-        res.send(phrase);
+        const author = response.data.author;
+        res.send({phrase: phrase, author: author});
     })
     .catch(error => {
         console.error('Error al obtener los datos:', error);
