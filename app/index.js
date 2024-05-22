@@ -127,7 +127,92 @@ app.get('/dictionary', (req, res) => {
 
 });
 
-  
+app.get('/quote_v2', async (req, res) => {
+
+  const apiUrl = 'https://api.quotable.io/quotes/random?limit=50';
+
+  const quotesString = await redisClient.get('quotes');
+
+    if(quotesString !== null) {
+        const quotes = JSON.parse(quotesString);
+        const quote = quotes.pop();
+        
+        if (quotes.length > 0){
+          await redisClient.set('quotes', JSON.stringify(quotes));
+        } else {
+          await redisClient.del('quotes');
+        }
+        res.send(quote);
+    } else {
+      const start = process.hrtime();
+      axios.get(apiUrl)
+      .then(async(response) => {
+          const duration = process.hrtime(start);
+          sendDuration(duration, 'remote_api.response_time');
+          const quotes = response.data.map(quote => ({phrase: quote.content, author: quote.author}))
+          const quote = quotes.pop();
+          await redisClient.set('quotes', JSON.stringify(quotes));
+          res.send(quote);
+      })
+      .catch(error => {
+          console.error('Error al obtener los datos:', error);
+      });
+  }
+
+});
+
+
+app.get('/dictionary_v2', async(req, res) => {
+
+  const word = req.query.word;
+
+  if (!word) {
+      return res.status(400).send('Error: Debes proporcionar un valor para el parámetro "word"');
+    }
+
+  const apiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
+
+  const wordInfoString = await redisClient.get(word);
+
+  if(wordInfoString !== null) {
+    console.log('CACHED')
+    const wordInfo = JSON.parse(wordInfoString);
+    res.send(wordInfo);
+  } else {
+    console.log('NOT CACHED')
+    const start = process.hrtime();
+    axios.get(apiUrl)
+    .then(async(response) => {
+        const duration = process.hrtime(start);
+        sendDuration(duration, 'remote_api.response_time');
+        
+        const data = response.data;
+
+        let phonetics = [];
+        let meanings = [];
+
+        if (Array.isArray(data) && data.length > 0) {
+          data.forEach(entry => {
+            phonetics.push(...entry.phonetics.map(entry => entry));
+            meanings.push(...entry.meanings.map(entry => entry));
+          });
+        }
+
+      const wordInfo = {
+        phonetics: phonetics,
+        meanings: meanings
+      };
+
+      await redisClient.set(word, JSON.stringify(wordInfo), {EX: 10});
+        
+      res.send(wordInfo);
+    })
+    .catch(error => {
+        console.error('Error al obtener los datos:', error);
+    });
+    }
+
+});
 
 // Iniciar el servidor
 app.listen(PORT, () => {
